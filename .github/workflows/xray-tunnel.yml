@@ -2,8 +2,6 @@ name: xray-tunnel
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 jobs:
   build:
@@ -11,16 +9,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: install and run Xray
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y unzip wget curl
+
+      - name: Download and setup Xray
         run: |
           wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
           unzip -o Xray-linux-64.zip
           chmod +x xray
-          UUID=$(cat /proc/sys/kernel/random/uuid)
-          echo "Your UUID: $UUID"
 
-          cat > config.json <<'EOF'
-{
+      - name: Generate UUID and config
+        run: |
+          UUID=$(cat /proc/sys/kernel/random/uuid || uuidgen)
+          echo "UUID: $UUID"
+          echo '{
   "inbounds": [{
     "port": 8080,
     "protocol": "vless",
@@ -34,11 +38,12 @@ jobs:
     }
   }],
   "outbounds": [{"protocol": "freedom"}]
-}
-EOF
+}' > config.json
 
+      - name: Run Xray
+        run: |
           ./xray -config config.json &
+          sleep 10
           IP=$(curl -s ifconfig.me)
           echo "Server IP: $IP"
           echo "VLESS config: vless://$UUID@$IP:8080?encryption=none&security=auto&type=ws&path=%2F#GitHub-Tunnel"
-          sleep 999999d
