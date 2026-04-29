@@ -1,0 +1,54 @@
+name: xray-tunnel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y unzip wget curl
+
+      - name: Download and setup Xray
+        run: |
+          wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+          unzip -o Xray-linux-64.zip
+          chmod +x xray
+
+      - name: Generate UUID and config
+        run: |
+          UUID=$(cat /proc/sys/kernel/random/uuid)
+          echo "UUID=$UUID" >> $GITHUB_ENV
+          cat > config.json <<EOF
+          {
+            "inbounds": [{
+              "port": 8080,
+              "protocol": "vless",
+              "settings": {
+                "clients": [{"id": "$UUID"}],
+                "decryption": "none"
+              },
+              "streamSettings": {
+                "network": "ws",
+                "wsSettings": {"path": "/"}
+              }
+            }],
+            "outbounds": [{"protocol": "freedom"}]
+          }
+          EOF
+
+      - name: Run Xray
+        run: |
+          ./xray -config config.json &
+          sleep 15
+          IP=$(curl -s ifconfig.me)
+          echo "Server IP: $IP"
+          echo "VLESS config: vless://${{ env.UUID }}@$IP:8080?encryption=none&security=auto&type=ws&path=%2F#GitHub-Tunnel"
+          echo "--------------------------------"
+          echo "✅ تونل روشن شد. این workflow تا 6 ساعت دیگه ادامه داره."
+          sleep 6h
