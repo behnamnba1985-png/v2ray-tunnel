@@ -1,0 +1,44 @@
+name: ساخت تونل Xray
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: نصب و اجرای Xray
+        run: |
+          wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+          unzip -o Xray-linux-64.zip
+          chmod +x xray
+          UUID=$(cat /proc/sys/kernel/random/uuid)
+          echo "UUID شما: $UUID"
+
+          cat > config.json <<'EOF'
+{
+  "inbounds": [{
+    "port": 8080,
+    "protocol": "vless",
+    "settings": {
+      "clients": [{"id": "'"$UUID"'"}],
+      "decryption": "none"
+    },
+    "streamSettings": {
+      "network": "ws",
+      "wsSettings": {"path": "/"}
+    }
+  }],
+  "outbounds": [{"protocol": "freedom"}]
+}
+EOF
+
+          ./xray -config config.json &
+          IP=$(curl -s ifconfig.me)
+          echo "آی‌پی سرور: $IP"
+          echo "لینک کانفیگ: vless://$UUID@$IP:8080?encryption=none&security=auto&type=ws&path=%2F#GitHub-Tunnel"
+          sleep 999999d
