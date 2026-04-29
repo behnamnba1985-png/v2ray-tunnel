@@ -1,4 +1,4 @@
-name: ساخت تونل Xray
+name: xray-tunnel
 
 on:
   workflow_dispatch:
@@ -11,13 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: نصب و اجرای Xray
+      - name: install and run Xray
         run: |
           wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
           unzip -o Xray-linux-64.zip
           chmod +x xray
           UUID=$(cat /proc/sys/kernel/random/uuid)
-          echo "UUID شما: $UUID"
+          echo "Your UUID: $UUID"
 
           cat > config.json <<'EOF'
 {
@@ -39,6 +39,6 @@ EOF
 
           ./xray -config config.json &
           IP=$(curl -s ifconfig.me)
-          echo "آی‌پی سرور: $IP"
-          echo "لینک کانفیگ: vless://$UUID@$IP:8080?encryption=none&security=auto&type=ws&path=%2F#GitHub-Tunnel"
+          echo "Server IP: $IP"
+          echo "VLESS config: vless://$UUID@$IP:8080?encryption=none&security=auto&type=ws&path=%2F#GitHub-Tunnel"
           sleep 999999d
